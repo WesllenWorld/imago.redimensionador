@@ -4,10 +4,9 @@ Console.WriteLine("Processo de redimensionamento iniciado.");
 
 Thread thread = new Thread(Redimensionar);
 thread.Start();
-//Redimensionar();
+
 static void Redimensionar()
 {
-    //Pastas_Setup();
     string entrada = "Arquivos_Entrada";
     if (!Directory.Exists(entrada))
     {
@@ -35,7 +34,9 @@ static void Redimensionar()
         var arquivosEntrada = Directory.EnumerateFiles(entrada);
 
         //ler o tamanho que irá redimensionar
-        int novaAltura = 200;
+        //int novaAltura = 200;
+        //redimensionar para as três tamanhos: 200, 500 e 1000px
+        int[] alturas = new int[] { 200, 500, 1000 };
 
         //Instanciar FileStream e FileInfo
         FileStream fs;
@@ -43,23 +44,29 @@ static void Redimensionar()
 
         foreach (var arquivo in arquivosEntrada)
         {
-            //Console.WriteLine(arquivo);
             fs = new FileStream(arquivo, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
             fileInfo = new FileInfo(arquivo);
+            Image imagemOriginal = Image.FromStream(fs);
 
-            string caminho = Environment.CurrentDirectory + @"\" + redimensionados + @"\" + DateTime.Now.Millisecond.ToString() +"_"+ fileInfo.Name;
-            //redimensionar e copiar os arquivos para a pasta redimensionados
-            Redimensionador(Image.FromStream(fs), novaAltura, caminho);
-            
             //é importante descartar (fechar) o que estiver na memória
             //usando fs.Close(). Similar ao que é feito em Java.
+            //fs.Close();
             fs.Close();
 
-            //em seguida, mover de entrada para finalizados
-            string caminhoFinalizado = Environment.CurrentDirectory + @"\" + finalizados + @"\" + DateTime.Now.Millisecond.ToString() + fileInfo.Name;
-            fileInfo.MoveTo(caminhoFinalizado);
-            
+            foreach (int novaAltura in alturas)
+            {
+                //redimensionar e copiar os arquivos para a pasta redimensionados
+                string caminho = Environment.CurrentDirectory + @"\" + redimensionados + @"\" + DateTime.Now.Millisecond.ToString() + "_" + novaAltura + fileInfo.Name;
+                string caminhoFinalizado = Environment.CurrentDirectory + @"\" + finalizados + @"\" + DateTime.Now.Millisecond.ToString() + novaAltura + fileInfo.Name;
 
+                Redimensionador(imagemOriginal, novaAltura, caminho);
+                File.Copy(caminho, caminhoFinalizado);
+                
+
+            }
+            
+            imagemOriginal.Dispose();
+            File.Delete(arquivo);
         }
         Thread.Sleep(new TimeSpan(0, 0, 3));
     }
@@ -78,30 +85,12 @@ static void Redimensionador(Image img, int tamanho, string caminho)
     double aspectRatio = (double)tamanho / img.Height;
     int novaLargura = (int)(img.Width * aspectRatio);
     int novaAltura = (int)(img.Height * aspectRatio);
-    
+
     Bitmap novaImagem = new Bitmap(novaLargura, novaAltura);
-    using(Graphics g = Graphics.FromImage(novaImagem))
+    using (Graphics g = Graphics.FromImage(novaImagem))
     {
         g.DrawImage(img, 0, 0, novaLargura, novaAltura);
     }
     novaImagem.Save(caminho);
     novaImagem.Dispose();
 }
-
-/*static void Pastas_Setup(){
-    string entrada = "Arquivos_Entrada";
-    if (!Directory.Exists(entrada))
-    {
-        Directory.CreateDirectory(entrada);
-    }
-    string redimensionado = "Arquivos_Redimensionado";
-    if (!Directory.Exists(redimensionado))
-    {
-        Directory.CreateDirectory(redimensionado);
-    }
-    string finalizados = "Arquivos_Finalizados";
-    if (!Directory.Exists(finalizados))
-    {
-        Directory.CreateDirectory(finalizados);
-    }
-}*/
